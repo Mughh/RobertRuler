@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Robert's Rules Order Counter</title>
+  <link href="https://fonts.googleapis.com/css?family=Roboto:400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --eus-red: #D72B2B;
+      --eus-red-hover: #C12828;
+      --eus-gray: #6A6A6A;
+      --eus-gray-hover: #555555;
+      --bg-light: #f5f5f5;
+      --bg-dark: #000;
+      --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --border-radius: 4px;
+      --transition-speed: 0.25s;
+      --circle-stroke-width: 10;
+      --circle-radius: 50;
+      --circle-circumference: calc(2 * 3.14159 * var(--circle-radius));
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0; padding: 0;
+      background: var(--bg-light);
+      font-size: 14px; color: #333;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ===== Intro / Password Gate ===== */
+    #gate {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      background:
+        radial-gradient(1200px 600px at 20% 20%, rgba(215,43,43,0.12), transparent 60%),
+        radial-gradient(1000px 500px at 80% 30%, rgba(163,31,39,0.12), transparent 60%),
+        #0b0b0b;
+      z-index: 9999;
+    }
+    #gate .card {
+      width: min(92vw, 540px);
+      background: #111; color: #fff;
+      border: 1px solid #2a2a2a;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      padding: 26px 22px;
+      text-align: center;
+    }
+    #gate h1 { margin: 0 0 6px; font-size: 1.7rem; letter-spacing: .2px; }
+    #gate h2 { margin: 4px 0 16px; font-weight: 500; color: #e8e8e8; font-size: 1.1rem; }
+    #gate img.logo {
+      width: 160px; height: auto; margin: 8px auto 8px; display: block;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35));
+      user-select: none; -webkit-user-drag: none;
+    }
+    #gate .names { margin-top: 4px; font-size: .98rem; color: #d0d0d0; }
+    #gate .input-row {
+      margin-top: 18px; display: flex; gap: 8px; align-items: center; justify-content: center;
+    }
+    #gate input[type="password"] {
+      flex: 1; min-width: 0;
+      background: #0b0b0b; color: #fff;
+      border: 1px solid #333; border-radius: 10px;
+      padding: 10px 12px; font-size: 1rem; outline: none;
+      transition: border .2s, box-shadow .2s;
+    }
+    #gate input[type="password"]::placeholder { color: #9a9a9a; }
+    #gate input[type="password"]:focus {
+      border-color: var(--eus-red);
+      box-shadow: 0 0 0 3px rgba(215,43,43,0.15);
+    }
+    #gate button.enter {
+      background: var(--eus-red); color: #fff; border: none;
+      padding: 10px 14px; border-radius: 10px; font-size: 1rem; cursor: pointer;
+      transition: transform var(--transition-speed), background var(--transition-speed);
+      min-width: 120px;
+    }
+    #gate button.enter:hover { background: var(--eus-red-hover); transform: translateY(-1px); }
+    #gate .error { margin-top: 10px; color: #ff6b6b; min-height: 1.2em; font-size: .95rem; }
+    #gate .footnote { margin-top: 14px; font-size: .85rem; color: #9a9a9a; }
+
+    /* Hide app until unlocked */
+    #app { display: none; }
+
+    header {
+      position: relative; width: 100%;
+      background: linear-gradient(135deg, var(--eus-red), #A31F27);
+      padding: 12px 0; box-shadow: var(--box-shadow);
+    }
+    header h1 { text-align: center; margin: 0; color: #fff; font-size: 1.9em; }
+
+    /* Dark mode toggle */
+    .toggle-switch { position: absolute; top: 10px; right: 10px; width: 60px; height: 30px; }
+    .toggle-switch input { display: none; }
+    .toggle-switch label {
+      display: block; width: 100%; height: 100%; background: #ccc; border-radius: 15px;
+      position: relative; cursor: pointer; transition: background 0.3s;
+    }
+    .toggle-switch .toggle-knob {
+      position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; background: #fff;
+      border-radius: 50%; transition: left 0.3s; z-index: 2;
+    }
+    .toggle-switch input:checked + label { background: var(--eus-red); }
+    .toggle-switch input:checked + label .toggle-knob { left: 32px; }
+
+    /* Layout */
+    main { display: flex; flex-direction: row; padding: 8px; gap: 8px; width: 100%; }
+    .left-panel { flex: 2; padding: 8px; }
+    .right-panel { flex: 1; padding: 8px; }
+    @media (max-width: 768px) {
+      main { flex-direction: column; }
+      .left-panel, .right-panel { width: 100%; }
+    }
+
+    /* Sections */
+    section {
+      background: #fff; padding: 12px; border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow); border: 1px solid #ddd; margin-bottom: 12px;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    h2 { margin: 0 0 12px; font-size: 1.3em; color: var(--eus-red); }
+    body.dark-mode h2 { color: #fff; }
+
+    /* Inputs */
+    .flex-container { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 0 8px; }
+    .column { flex: 1; min-width: 220px; }
+    input[type="text"], input[type="number"] {
+      width: 100%; padding: 8px; margin: 4px 0; border: 1px solid #ccc; border-radius: var(--border-radius);
+      transition: border 0.2s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus { border-color: var(--eus-red); outline: none; }
+
+    /* Queue */
+    .queue-container { display: flex; flex-direction: row; gap: 8px; padding: 0 8px; flex-wrap: nowrap; }
+    .queue-container .column { width: 48%; }
+    .queue-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 8px; }
+    .queue-header h3 { margin: 0; font-size: 1.15em; }
+    .clear-btn { padding: 6px 8px; font-size: 1em; }
+    .queue-list {
+      list-style: none; padding: 8px; border: 1px solid #ccc; border-radius: var(--border-radius);
+      min-height: 60px; background: #fafafa; font-size: 0.9em; margin: 0 8px;
+    }
+    .queue-list li { padding: 4px 0; border-bottom: 1px solid #eee; }
+    .queue-list li:last-child { border-bottom: none; }
+    .skipped { text-decoration: line-through; }
+
+    /* Buttons */
+    button {
+      padding: 8px 12px; margin: 4px 0; border: none; border-radius: var(--border-radius);
+      cursor: pointer; font-size: 1em; color: #fff;
+      transition: background var(--transition-speed), transform var(--transition-speed);
+    }
+    button:hover { transform: scale(1.02); }
+    button.default, button:not(.start-btn):not(.stop-btn) { background: var(--eus-red); }
+    button.default:hover, button:not(.start-btn):not(.stop-btn):hover { background: var(--eus-red-hover); }
+    .preset { background: var(--eus-red); }
+    .preset:hover { background: var(--eus-red-hover); }
+    .start-btn { background: var(--eus-red); }
+    .start-btn:hover { background: var(--eus-red-hover); }
+    .stop-btn { background: var(--eus-gray); }
+    .stop-btn:hover { background: var(--eus-gray-hover); }
+    #resetTimerBtn { background: #888; }
+    #resetTimerBtn:hover { background: #777; }
+    #nextSpeakerBtn { min-height: 40px; }
+
+    /* Timers */
+    .circle-container { display: flex; justify-content: center; align-items: center; margin-bottom: 12px; }
+    svg#timerCircle1, svg#timerCircle2 { width: 140px; height: 140px; }
+    circle.timer-bg { fill: none; stroke: #ccc; stroke-width: var(--circle-stroke-width); }
+    circle.timer-progress {
+      fill: none; stroke: var(--eus-red); stroke-width: var(--circle-stroke-width);
+      stroke-dasharray: var(--circle-circumference); stroke-dashoffset: 0;
+      transition: stroke-dashoffset 0.25s linear;
+    }
+    text#timerDisplay1, text#timerDisplay2 { fill: #333; font-size: 20px; text-anchor: middle; dominant-baseline: middle; }
+
+    /* Presets & Custom time rows */
+    #timerControls1, #timerControls2 { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 0 4px 12px; }
+    .custom-time-container { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 0 4px 12px; }
+    .custom-time-container input { width: 80px; padding: 8px; }
+
+    /* Footer */
+    #footer {
+      position: fixed; bottom: 0; right: 0; margin: 10px;
+      font-size: 0.85em; color: #333; opacity: 0.5; z-index: 1000; transition: color 0.3s;
+    }
+
+    /* Dark mode */
+    body.dark-mode { background: #000; color: #fff; }
+    body.dark-mode header { background: #111; }
+    body.dark-mode section { background: #111; border-color: #333; }
+    body.dark-mode input, body.dark-mode button { border-color: #333; }
+    body.dark-mode .queue-list { background: #111; border-color: #333; }
+    body.dark-mode svg#timerCircle1 circle.timer-bg,
+    body.dark-mode svg#timerCircle2 circle.timer-bg { stroke: #333; }
+    body.dark-mode svg#timerCircle1 circle.timer-progress,
+    body.dark-mode svg#timerCircle2 circle.timer-progress { stroke: var(--eus-red); }
+    body.dark-mode svg#timerCircle1 text#timerDisplay1,
+    body.dark-mode svg#timerCircle2 text#timerDisplay2 { fill: #fff; }
+    body.dark-mode #footer { color: #fff; }
+    body.dark-mode .toggle-switch label { background: #666; }
+    body.dark-mode .toggle-switch label:hover { background: #666; }
+
+    /* Current speaker */
+    #currentSpeakerDisplay {
+      font-size: 1.5em; padding: 12px; background: #e9ecef; border-radius: 3px; text-align: center; margin: 0 8px;
+    }
+    body.dark-mode #currentSpeakerDisplay { background: #333; color: #fff; }
+  </style>
+</head>
+<body>
+  <!-- Intro / Password Gate -->
+  <div id="gate" role="dialog" aria-modal="true">
+    <div class="card">
+      <h1>Robert’s Rules Counter</h1>
+      <h2>Presented by</h2>
+      <img class="logo" src="eus-logo.webp" alt="EUS logo">
+      <div class="names">Cyril El Feghali &middot; Nicolas El Murr</div>
+
+      <div class="input-row">
+        <input id="pw" type="password" placeholder="Enter password" autocomplete="current-password" />
+        <button class="enter" id="enterBtn">Enter</button>
+      </div>
+      <div id="pwError" class="error"></div>
+      <div class="footnote">Access required to use this tool.</div>
+    </div>
+  </div>
+
+  <!-- App (hidden until unlocked) -->
+  <div id="app" aria-hidden="true">
+    <header>
+      <h1>Robert's Rules Order Counter</h1>
+      <div class="toggle-switch">
+        <input type="checkbox" id="themeToggle">
+        <label for="themeToggle"><span class="toggle-knob"></span></label>
+      </div>
+    </header>
+
+    <main>
+      <!-- Left Panel: Speakers -->
+      <div class="left-panel">
+        <section id="add-speaker">
+          <h2>Add Speaker</h2>
+          <div class="flex-container">
+            <div class="column">
+              <h3>Priority 1 (New Point)</h3>
+              <input type="text" id="speakerName1" placeholder="Enter speaker's name" />
+              <button id="addSpeakerBtn1" class="default">Add Speaker</button>
+            </div>
+            <div class="column">
+              <h3>Priority 2 (Response)</h3>
+              <input type="text" id="speakerName2" placeholder="Enter speaker's name" />
+              <button id="addSpeakerBtn2" class="default">Add Speaker</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="queue">
+          <h2>Speaking Queue</h2>
+          <div class="queue-container">
+            <div class="column">
+              <div class="queue-header">
+                <h3>Priority 1</h3>
+                <button id="clearOnesBtn" class="default clear-btn">Clear 1's</button>
+              </div>
+              <ul id="speakerList1" class="queue-list"></ul>
+            </div>
+            <div class="column">
+              <div class="queue-header">
+                <h3>Priority 2</h3>
+                <button id="clearTwosBtn" class="default clear-btn">Clear 2's</button>
+              </div>
+              <ul id="speakerList2" class="queue-list"></ul>
+            </div>
+          </div>
+          <button id="nextSpeakerBtn" class="default" style="width:98%; margin:8px;">Next Speaker</button>
+        </section>
+
+        <section id="currently-speaking">
+          <h2>Currently Speaking</h2>
+          <div id="currentSpeakerDisplay">None</div>
+        </section>
+      </div>
+
+      <!-- Right Panel: Timers -->
+      <div class="right-panel">
+        <section id="timerSection1">
+          <h2>Timer 1</h2>
+          <div class="circle-container">
+            <svg id="timerCircle1" viewBox="0 0 120 120">
+              <circle class="timer-bg" cx="60" cy="60" r="50" />
+              <circle class="timer-progress" cx="60" cy="60" r="50" />
+              <text id="timerDisplay1" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"></text>
+            </svg>
+          </div>
+          <div id="timerControls1">
+            <button class="preset" data-seconds="30">30 secs</button>
+            <button class="preset" data-seconds="45">45 secs</button>
+            <button class="preset" data-seconds="60">1 min</button>
+            <button class="preset" data-seconds="120">2 mins</button>
+            <button class="preset" data-seconds="600">10 mins</button>
+            <button class="preset" data-seconds="900">15 mins</button>
+          </div>
+          <div class="custom-time-container">
+            <input type="number" id="customMinutes1" placeholder="Min" min="0"/>
+            <input type="number" id="customSeconds1" placeholder="Sec" min="0"/>
+            <button id="setCustomTimeBtn1" class="default">Set</button>
+          </div>
+          <button id="add30SecsBtn1" class="default" style="width:100%; margin:2px;">Add 30 secs</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin:0 4px;">
+            <button id="startTimerBtn1" class="start-btn" style="flex:1;">Start</button>
+            <button id="pauseTimerBtn1" class="stop-btn" style="flex:1;">Pause</button>
+            <button id="resetTimerBtn1" style="flex:1;">Reset</button>
+          </div>
+        </section>
+
+        <section id="timerSection2">
+          <h2>Timer 2</h2>
+          <div class="circle-container">
+            <svg id="timerCircle2" viewBox="0 0 120 120">
+              <circle class="timer-bg" cx="60" cy="60" r="50" />
+              <circle class="timer-progress" cx="60" cy="60" r="50" />
+              <text id="timerDisplay2" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"></text>
+            </svg>
+          </div>
+          <div id="timerControls2">
+            <button class="preset" data-seconds="30">30 secs</button>
+            <button class="preset" data-seconds="45">45 secs</button>
+            <button class="preset" data-seconds="60">1 min</button>
+            <button class="preset" data-seconds="120">2 mins</button>
+            <button class="preset" data-seconds="600">10 mins</button>
+            <button class="preset" data-seconds="900">15 mins</button>
+          </div>
+          <div class="custom-time-container">
+            <input type="number" id="customMinutes2" placeholder="Min" min="0"/>
+            <input type="number" id="customSeconds2" placeholder="Sec" min="0"/>
+            <button id="setCustomTimeBtn2" class="default">Set</button>
+          </div>
+          <button id="add30SecsBtn2" class="default" style="width:100%; margin:2px;">Add 30 secs</button>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin:0 4px;">
+            <button id="startTimerBtn2" class="start-btn" style="flex:1;">Start</button>
+            <button id="pauseTimerBtn2" class="stop-btn" style="flex:1;">Pause</button>
+            <button id="resetTimerBtn2" style="flex:1;">Reset</button>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <div id="footer">Created by: C. El Feghali &amp; N. El Murr</div>
+  </div>
+
+  <script>
+    /* ===== Password Gate ===== */
+    const gate = document.getElementById('gate');
+    const app = document.getElementById('app');
+    const pwInput = document.getElementById('pw');
+    const pwError = document.getElementById('pwError');
+    const enterBtn = document.getElementById('enterBtn');
+    const PASSWORD = 'eusisbest';
+
+    function showApp() {
+      gate.style.display = 'none';
+      app.style.display = 'block';
+      app.setAttribute('aria-hidden', 'false');
+      // focus first useful control
+      const nameBox = document.getElementById('speakerName1');
+      if (nameBox) nameBox.focus();
+    }
+    function checkSession() {
+      if (sessionStorage.getItem('eus_authed') === '1') {
+        showApp();
+      }
+    }
+    function tryUnlock() {
+      const val = (pwInput.value || '').trim();
+      if (val === PASSWORD) {
+        sessionStorage.setItem('eus_authed', '1');
+        showApp();
+      } else {
+        pwError.textContent = 'Incorrect password. Try again.';
+      }
+    }
+    enterBtn.addEventListener('click', tryUnlock);
+    pwInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') tryUnlock();
+    });
+    checkSession();
+
+    /* ===== Dark Mode Toggle ===== */
+    document.getElementById('themeToggle').addEventListener('change', function () {
+      if (this.checked) document.body.classList.add('dark-mode');
+      else document.body.classList.remove('dark-mode');
+    });
+
+    /***********************
+     * Speaker Queue Logic *
+     ***********************/
+    let queueTwos = [];
+    let queueOnes = [];
+
+    function updateQueueDisplay() {
+      const speakerList1 = document.getElementById('speakerList1');
+      const speakerList2 = document.getElementById('speakerList2');
+      speakerList1.innerHTML = "";
+      speakerList2.innerHTML = "";
+
+      queueOnes.forEach((speakerObj) => {
+        const li = document.createElement('li');
+        li.textContent = speakerObj.name;
+        if (speakerObj.skipped) li.classList.add('skipped');
+        li.addEventListener('dblclick', () => {
+          speakerObj.skipped = !speakerObj.skipped;
+          li.classList.toggle('skipped');
+        });
+        speakerList1.appendChild(li);
+      });
+
+      queueTwos.forEach((speakerObj) => {
+        const li = document.createElement('li');
+        li.textContent = speakerObj.name;
+        if (speakerObj.skipped) li.classList.add('skipped');
+        li.addEventListener('dblclick', () => {
+          speakerObj.skipped = !speakerObj.skipped;
+          li.classList.toggle('skipped');
+        });
+        speakerList2.appendChild(li);
+      });
+    }
+
+    function addSpeaker1() {
+      const input = document.getElementById('speakerName1');
+      const name = input.value.trim();
+      if (!name) { alert("Please enter a name for Priority 1 speaker."); return; }
+      queueOnes.push({ name, skipped: false });
+      input.value = "";
+      updateQueueDisplay();
+    }
+
+    function addSpeaker2() {
+      const input = document.getElementById('speakerName2');
+      const name = input.value.trim();
+      if (!name) { alert("Please enter a name for Priority 2 speaker."); return; }
+      queueTwos.push({ name, skipped: false });
+      input.value = "";
+      updateQueueDisplay();
+    }
+
+    document.getElementById('addSpeakerBtn1').addEventListener('click', addSpeaker1);
+    document.getElementById('addSpeakerBtn2').addEventListener('click', addSpeaker2);
+    document.getElementById('speakerName1').addEventListener('keydown', (e) => { if (e.key === 'Enter') addSpeaker1(); });
+    document.getElementById('speakerName2').addEventListener('keydown', (e) => { if (e.key === 'Enter') addSpeaker2(); });
+
+    document.getElementById('nextSpeakerBtn').addEventListener('click', () => {
+      let nextSpeaker = getNextSpeaker(queueTwos);
+      if (!nextSpeaker) nextSpeaker = getNextSpeaker(queueOnes);
+      if (nextSpeaker) document.getElementById('currentSpeakerDisplay').textContent = nextSpeaker;
+      else alert("No speakers in the queue.");
+      updateQueueDisplay();
+      resetTimer1();
+      startTimer1();
+    });
+
+    function getNextSpeaker(queue) {
+      while (queue.length > 0 && queue[0].skipped) queue.shift();
+      if (queue.length > 0) return queue.shift().name;
+      return null;
+    }
+
+    document.getElementById('clearOnesBtn').addEventListener('click', () => { queueOnes = []; updateQueueDisplay(); });
+    document.getElementById('clearTwosBtn').addEventListener('click', () => { queueTwos = []; updateQueueDisplay(); });
+
+    /********************
+     * Timer 1
+     ********************/
+    let timerDuration1 = 60;
+    let timerRemaining1 = timerDuration1;
+    let timerInterval1 = null;
+
+    const circleProgress1 = document.querySelector('#timerCircle1 .timer-progress');
+    const circleCircumference1 = 2 * Math.PI * 50;
+
+    function updateTimerDisplay1() {
+      const timerDisplay1 = document.getElementById('timerDisplay1');
+      const minutes1 = Math.floor(timerRemaining1 / 60);
+      const seconds1 = timerRemaining1 % 60;
+      const timeString1 = String(minutes1).padStart(2,'0') + ":" + String(seconds1).padStart(2,'0');
+      timerDisplay1.textContent = timeString1;
+      const fraction1 = timerDuration1 > 0 ? timerRemaining1 / timerDuration1 : 1;
+      circleProgress1.style.strokeDashoffset = circleCircumference1 * (1 - fraction1);
+    }
+
+    function startTimer1() {
+      if (timerInterval1 !== null) return;
+      timerInterval1 = setInterval(() => {
+        if (timerRemaining1 > 0) { timerRemaining1--; updateTimerDisplay1(); }
+        else { clearInterval(timerInterval1); timerInterval1 = null; alert("Timer 1: Time's up!"); }
+      }, 1000);
+    }
+    function pauseTimer1() { if (timerInterval1 !== null) { clearInterval(timerInterval1); timerInterval1 = null; } }
+    function resetTimer1() { pauseTimer1(); timerRemaining1 = timerDuration1; updateTimerDisplay1(); }
+
+    document.querySelectorAll('#timerControls1 .preset').forEach(btn => {
+      btn.addEventListener('click', () => { timerDuration1 = parseInt(btn.getAttribute('data-seconds')); resetTimer1(); });
+    });
+    document.getElementById('setCustomTimeBtn1').addEventListener('click', () => {
+      const m = parseInt(document.getElementById('customMinutes1').value) || 0;
+      const s = parseInt(document.getElementById('customSeconds1').value) || 0;
+      const total = m * 60 + s;
+      if (total <= 0) { alert("Please enter a valid time for Timer 1."); return; }
+      timerDuration1 = total; resetTimer1();
+      document.getElementById('customMinutes1').value = "";
+      document.getElementById('customSeconds1').value = "";
+    });
+    document.getElementById('add30SecsBtn1').addEventListener('click', () => {
+      timerRemaining1 += 30; timerDuration1 += 30; updateTimerDisplay1();
+    });
+    document.getElementById('startTimerBtn1').addEventListener('click', startTimer1);
+    document.getElementById('pauseTimerBtn1').addEventListener('click', pauseTimer1);
+    document.getElementById('resetTimerBtn1').addEventListener('click', resetTimer1);
+
+    circleProgress1.style.strokeDasharray = circleCircumference1;
+    updateTimerDisplay1();
+
+    /********************
+     * Timer 2
+     ********************/
+    let timerDuration2 = 60;
+    let timerRemaining2 = timerDuration2;
+    let timerInterval2 = null;
+
+    const circleProgress2 = document.querySelector('#timerCircle2 .timer-progress');
+    const circleCircumference2 = 2 * Math.PI * 50;
+
+    function updateTimerDisplay2() {
+      const timerDisplay2 = document.getElementById('timerDisplay2');
+      const minutes2 = Math.floor(timerRemaining2 / 60);
+      const seconds2 = timerRemaining2 % 60;
+      const timeString2 = String(minutes2).padStart(2,'0') + ":" + String(seconds2).padStart(2,'0');
+      timerDisplay2.textContent = timeString2;
+      const fraction2 = timerDuration2 > 0 ? timerRemaining2 / timerDuration2 : 1;
+      circleProgress2.style.strokeDashoffset = circleCircumference2 * (1 - fraction2);
+    }
+
+    function startTimer2() {
+      if (timerInterval2 !== null) return;
+      timerInterval2 = setInterval(() => {
+        if (timerRemaining2 > 0) { timerRemaining2--; updateTimerDisplay2(); }
+        else { clearInterval(timerInterval2); timerInterval2 = null; alert("Timer 2: Time's up!"); }
+      }, 1000);
+    }
+    function pauseTimer2() { if (timerInterval2 !== null) { clearInterval(timerInterval2); timerInterval2 = null; } }
+    function resetTimer2() { pauseTimer2(); timerRemaining2 = timerDuration2; updateTimerDisplay2(); }
+
+    document.querySelectorAll('#timerControls2 .preset').forEach(btn => {
+      btn.addEventListener('click', () => { timerDuration2 = parseInt(btn.getAttribute('data-seconds')); resetTimer2(); });
+    });
+    document.getElementById('setCustomTimeBtn2').addEventListener('click', () => {
+      const m = parseInt(document.getElementById('customMinutes2').value) || 0;
+      const s = parseInt(document.getElementById('customSeconds2').value) || 0;
+      const total = m * 60 + s;
+      if (total <= 0) { alert("Please enter a valid time for Timer 2."); return; }
+      timerDuration2 = total; resetTimer2();
+      document.getElementById('customMinutes2').value = "";
+      document.getElementById('customSeconds2').value = "";
+    });
+    document.getElementById('add30SecsBtn2').addEventListener('click', () => {
+      timerRemaining2 += 30; timerDuration2 += 30; updateTimerDisplay2();
+    });
+    document.getElementById('startTimerBtn2').addEventListener('click', startTimer2);
+    document.getElementById('pauseTimerBtn2').addEventListener('click', pauseTimer2);
+    document.getElementById('resetTimerBtn2').addEventListener('click', resetTimer2);
+
+    circleProgress2.style.strokeDasharray = circleCircumference2;
+    updateTimerDisplay2();
+  </script>
+</body>
+</html>
