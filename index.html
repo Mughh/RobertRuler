@@ -358,7 +358,7 @@
     const pwInput = document.getElementById('pw');
     const pwError = document.getElementById('pwError');
     const enterBtn = document.getElementById('enterBtn');
-    const PASSWORD = 'eusisbest';
+    const WORDINGG = 'eus';
 
     function showApp() {
       gate.style.display = 'none';
@@ -375,7 +375,7 @@
     }
     function tryUnlock() {
       const val = (pwInput.value || '').trim();
-      if (val === PASSWORD) {
+      if (val === WORDINGG) {
         sessionStorage.setItem('eus_authed', '1');
         showApp();
       } else {
@@ -577,3 +577,4 @@
   </script>
 </body>
 </html>
+
