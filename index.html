@@ -110,8 +110,128 @@
     .left-panel { flex: 2; padding: 8px; }
     .right-panel { flex: 1; padding: 8px; }
     @media (max-width: 768px) {
-      main { flex-direction: column; }
-      .left-panel, .right-panel { width: 100%; }
+      main { 
+        flex-direction: column;
+        padding: 4px;
+      }
+      .left-panel, .right-panel { 
+        width: 100%;
+        padding: 4px;
+      }
+      
+      /* Larger touch targets for mobile */
+      button { 
+        padding: 12px 16px;
+        font-size: 1.05em;
+        min-height: 44px; /* Apple's recommended touch target */
+      }
+      
+      input[type="text"], input[type="number"] { 
+        padding: 12px;
+        font-size: 1.05em;
+        min-height: 44px;
+      }
+      
+      .custom-time-container input { 
+        width: 100px;
+        padding: 12px;
+      }
+      
+      /* Larger preset buttons */
+      #timerControls1 button,
+      #timerControls2 button {
+        padding: 10px 14px;
+        min-width: 85px;
+      }
+      
+      /* Better queue item spacing */
+      .speaker-item {
+        padding: 10px 8px;
+      }
+      
+      .speaker-item-name {
+        font-size: 1.05em;
+      }
+      
+      .speaker-item button {
+        padding: 8px 10px;
+        font-size: 0.95em;
+        min-height: 36px;
+        min-width: 36px;
+      }
+      
+      /* Stack queue columns on small screens */
+      .queue-container {
+        flex-direction: column;
+      }
+      
+      .queue-container .column {
+        width: 100%;
+      }
+      
+      /* Larger current speaker display */
+      #currentSpeakerDisplay {
+        font-size: 1.8em;
+        padding: 16px;
+      }
+      
+      /* Larger timers on mobile */
+      svg#timerCircle1, svg#timerCircle2 {
+        width: 180px;
+        height: 180px;
+      }
+      
+      /* Keyboard shortcuts button */
+      #keyboardShortcutsBtn {
+        bottom: 60px;
+        right: 10px;
+        font-size: 1.1em;
+        padding: 10px 14px;
+      }
+      
+      /* Better notification placement */
+      #notification {
+        top: 70px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        font-size: 1em;
+      }
+    }
+
+    /* Extra small phones */
+    @media (max-width: 480px) {
+      header h1 {
+        font-size: 1.4em;
+      }
+      
+      h2 {
+        font-size: 1.15em;
+      }
+      
+      .toggle-switch {
+        top: 8px;
+        right: 8px;
+        width: 50px;
+        height: 25px;
+      }
+      
+      .toggle-switch .toggle-knob {
+        width: 21px;
+        height: 21px;
+      }
+      
+      .toggle-switch input:checked + label .toggle-knob {
+        left: 27px;
+      }
+      
+      /* Smaller timer preset buttons */
+      #timerControls1 button,
+      #timerControls2 button {
+        padding: 8px 10px;
+        min-width: 75px;
+        font-size: 0.95em;
+      }
     }
 
     /* Sections */
@@ -325,6 +445,36 @@
     gap: 3px;
     flex-wrap: nowrap;
   }
+
+  /* Logo fallback styling */
+  .logo-fallback {
+    text-align: center;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 20px;
+    border: 2px solid var(--eus-red);
+    border-radius: 10px;
+    display: inline-block;
+    margin: 20px auto;
+  }
+
+  /* Sound toggle button */
+  #soundToggle {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background 0.2s;
+  }
+  #soundToggle:hover {
+    background: rgba(255,255,255,0.3);
+  }
   </style>
 </head>
 <body>
@@ -333,7 +483,8 @@
     <div class="card">
       <h1>Robert’s Rules Counter</h1>
       <h2>Presented by</h2>
-      <img class="logo" src="eus-logo.webp" alt="EUS logo">
+      <img class="logo" src="eus-logo.webp" alt="EUS logo" onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='block';">
+      <div class="logo-fallback" style="display:none; font-size:2rem; font-weight:700; color:var(--eus-red); margin:20px 0;">EUS</div>
       <div class="names">Cyril El Feghali &middot; Nicolas El Murr</div>
 
       <div class="input-row">
@@ -350,6 +501,7 @@
   <div id="app" aria-hidden="true">
     <div id="notification" role="alert" aria-live="assertive"></div>
     <header>
+      <button id="soundToggle" aria-label="Toggle notification sound">🔊</button>
       <h1>Robert's Rules Order Counter</h1>
       <div class="toggle-switch">
         <input type="checkbox" id="themeToggle">
@@ -481,6 +633,7 @@
           <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Space</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Start/Pause Timer 1</td></tr>
           <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>N</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Next Speaker</td></tr>
           <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>R</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Reset Timer 1</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>M</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Toggle Sound</td></tr>
           <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Ctrl+Z</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Undo Last Action</td></tr>
           <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>1</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Focus Priority 1 input</td></tr>
           <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>2</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Focus Priority 2 input</td></tr>
@@ -888,15 +1041,80 @@
       notif.textContent = message;
       notif.classList.add('show');
       
-      // Play notification sound
-      playNotificationSound();
-      
       setTimeout(() => {
         notif.classList.remove('show');
       }, 4000);
     }
 
+    // Play a single beep
+    function playBeep(frequency = 800, duration = 200) {
+      return new Promise((resolve) => {
+        if (!soundEnabled) {
+          resolve();
+          return;
+        }
+        
+        try {
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
+          
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+          
+          oscillator.frequency.value = frequency;
+          oscillator.type = 'sine';
+          
+          gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration / 1000);
+          
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + duration / 1000);
+          
+          // Resolve when the beep is done
+          setTimeout(() => resolve(), duration);
+        } catch (error) {
+          console.warn('Audio playback failed:', error);
+          resolve();
+        }
+      });
+    }
+
+    // Play multiple beeps in sequence
+    async function playBeepSequence(count, frequency = 800, duration = 200, gap = 150) {
+      if (!soundEnabled) return;
+      
+      for (let i = 0; i < count; i++) {
+        await playBeep(frequency, duration);
+        if (i < count - 1) {
+          // Wait for the gap between beeps
+          await new Promise(resolve => setTimeout(resolve, gap));
+        }
+      }
+    }
+
+    // Warning sound - 1 beep
+    function playWarningSound() {
+      playBeepSequence(1, 800, 800);
+    }
+
+    // Timer complete sound - 3 beeps
+    function playTimerCompleteSound() {
+      playBeepSequence(3, 800, 400, 50);
+    }
+
+    // General notification sound - 2 beeps
     function playNotificationSound() {
+      playBeepSequence(2, 800, 200, 150);
+    }
+
+
+    // Sound toggle state
+    let soundEnabled = true;
+
+    function playNotificationSound() {
+      if (!soundEnabled) return; // Skip if muted
+      
       // Simple beep using Web Audio API
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
@@ -914,6 +1132,14 @@
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
     }
+
+    // Sound toggle button
+    document.getElementById('soundToggle').addEventListener('click', function() {
+      soundEnabled = !soundEnabled;
+      this.textContent = soundEnabled ? '🔊' : '🔇';
+      this.setAttribute('aria-label', soundEnabled ? 'Mute notification sound' : 'Unmute notification sound');
+      showNotification(soundEnabled ? 'Sound enabled' : 'Sound muted');
+    });
 
     /********************
      * Timer 1
@@ -956,11 +1182,13 @@
           // Warnings at specific times
           if (timerRemaining1 === 10) {
             showNotification('Timer 1: 10 seconds remaining');
+            playWarningSound();
           }
         } else {
           clearInterval(timerInterval1);
           timerInterval1 = null;
           showNotification("Timer 1: Time's up!");
+          playTimerCompleteSound();
           document.getElementById('timerSection1').classList.remove('timer-warning', 'timer-critical');
         }
       }, 1000);
@@ -982,7 +1210,7 @@
       document.getElementById('customSeconds1').value = "";
     });
     document.getElementById('add30SecsBtn1').addEventListener('click', () => {
-      timerRemaining1 += 30; timerDuration1 += 30; updateTimerDisplay1();
+      timerRemaining1 += 30; updateTimerDisplay1();
     });
     document.getElementById('startTimerBtn1').addEventListener('click', startTimer1);
     document.getElementById('pauseTimerBtn1').addEventListener('click', pauseTimer1);
@@ -1027,12 +1255,14 @@
           updateTimerDisplay2();
           if (timerRemaining2 === 10) {
             showNotification('Timer 2: 10 seconds remaining');
+            playWarningSound();
           }
         }
         else { 
           clearInterval(timerInterval2); 
           timerInterval2 = null; 
           showNotification("Timer 2: Time's up!"); 
+          playTimerCompleteSound();
           document.getElementById('timerSection2').classList.remove('timer-warning', 'timer-critical');
         }
       }, 1000);
@@ -1053,7 +1283,7 @@
       document.getElementById('customSeconds2').value = "";
     });
     document.getElementById('add30SecsBtn2').addEventListener('click', () => {
-      timerRemaining2 += 30; timerDuration2 += 30; updateTimerDisplay2();
+      timerRemaining2 += 30; updateTimerDisplay2();
     });
     document.getElementById('startTimerBtn2').addEventListener('click', startTimer2);
     document.getElementById('pauseTimerBtn2').addEventListener('click', pauseTimer2);
@@ -1083,17 +1313,20 @@
         case 'r':
           resetTimer1();
           break;
-        case '1':
-          document.getElementById('speakerName1').focus();
-          break;
-        case '2':
-          document.getElementById('speakerName2').focus();
+        case 'm':
+          document.getElementById('soundToggle').click();
           break;
         case 'z':
           if (e.ctrlKey || e.metaKey) { // Ctrl+Z or Cmd+Z
             e.preventDefault();
             undoLastAction();
           }
+          break;
+        case '1':
+          document.getElementById('speakerName1').focus();
+          break;
+        case '2':
+          document.getElementById('speakerName2').focus();
           break;
         case 'escape':
           document.getElementById('shortcutsModal').style.display = 'none';
