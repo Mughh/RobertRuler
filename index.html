@@ -277,6 +277,7 @@
             </div>
           </div>
           <button id="nextSpeakerBtn" class="default" style="width:98%; margin:8px;">Next Speaker</button>
+          <button id="clearAllDataBtn" class="stop-btn" style="width:98%; margin:8px;">Clear All Data</button>
         </section>
 
         <section id="currently-speaking">
@@ -395,11 +396,58 @@
       else document.body.classList.remove('dark-mode');
     });
 
+    /* ===== Local Storage Helper Functions ===== */
+    function saveToStorage() {
+      try {
+        localStorage.setItem('queueOnes', JSON.stringify(queueOnes));
+        localStorage.setItem('queueTwos', JSON.stringify(queueTwos));
+        localStorage.setItem('currentSpeaker', document.getElementById('currentSpeakerDisplay').textContent);
+      } catch (e) {
+        console.warn('Failed to save to localStorage:', e);
+      }
+    }
+
+    function loadFromStorage() {
+      try {
+        const savedOnes = localStorage.getItem('queueOnes');
+        const savedTwos = localStorage.getItem('queueTwos');
+        const savedCurrent = localStorage.getItem('currentSpeaker');
+        
+        if (savedOnes) queueOnes = JSON.parse(savedOnes);
+        if (savedTwos) queueTwos = JSON.parse(savedTwos);
+        if (savedCurrent && savedCurrent !== 'None') {
+          document.getElementById('currentSpeakerDisplay').textContent = savedCurrent;
+        }
+        
+        updateQueueDisplay();
+      } catch (e) {
+        console.warn('Failed to load from localStorage:', e);
+        // Reset to empty arrays if data is corrupted
+        queueOnes = [];
+        queueTwos = [];
+      }
+    }
+
+    function clearStorage() {
+      try {
+        localStorage.removeItem('queueOnes');
+        localStorage.removeItem('queueTwos');
+        localStorage.removeItem('currentSpeaker');
+      } catch (e) {
+        console.warn('Failed to clear localStorage:', e);
+      }
+    }
+
     /***********************
      * Speaker Queue Logic *
      ***********************/
     let queueTwos = [];
     let queueOnes = [];
+
+    // Load saved data when app starts
+    window.addEventListener('DOMContentLoaded', () => {
+      loadFromStorage();
+    });
 
     function updateQueueDisplay() {
       const speakerList1 = document.getElementById('speakerList1');
@@ -414,6 +462,7 @@
         li.addEventListener('dblclick', () => {
           speakerObj.skipped = !speakerObj.skipped;
           li.classList.toggle('skipped');
+          saveToStorage();
         });
         speakerList1.appendChild(li);
       });
@@ -425,6 +474,7 @@
         li.addEventListener('dblclick', () => {
           speakerObj.skipped = !speakerObj.skipped;
           li.classList.toggle('skipped');
+          saveToStorage();
         });
         speakerList2.appendChild(li);
       });
@@ -437,6 +487,7 @@
       queueOnes.push({ name, skipped: false });
       input.value = "";
       updateQueueDisplay();
+      saveToStorage();
     }
 
     function addSpeaker2() {
@@ -446,6 +497,7 @@
       queueTwos.push({ name, skipped: false });
       input.value = "";
       updateQueueDisplay();
+      saveToStorage();
     }
 
     document.getElementById('addSpeakerBtn1').addEventListener('click', addSpeaker1);
@@ -459,8 +511,19 @@
       if (nextSpeaker) document.getElementById('currentSpeakerDisplay').textContent = nextSpeaker;
       else alert("No speakers in the queue.");
       updateQueueDisplay();
+      saveToStorage();
       resetTimer1();
       startTimer1();
+    });
+
+    document.getElementById('clearAllDataBtn').addEventListener('click', () => {
+      if (confirm("Clear all speakers and reset? This cannot be undone.")) {
+        queueOnes = [];
+        queueTwos = [];
+        document.getElementById('currentSpeakerDisplay').textContent = 'None';
+        clearStorage();
+        updateQueueDisplay();
+      }
     });
 
     function getNextSpeaker(queue) {
@@ -469,8 +532,16 @@
       return null;
     }
 
-    document.getElementById('clearOnesBtn').addEventListener('click', () => { queueOnes = []; updateQueueDisplay(); });
-    document.getElementById('clearTwosBtn').addEventListener('click', () => { queueTwos = []; updateQueueDisplay(); });
+    document.getElementById('clearOnesBtn').addEventListener('click', () => { 
+      queueOnes = []; 
+      updateQueueDisplay(); 
+      saveToStorage();
+    });
+    document.getElementById('clearTwosBtn').addEventListener('click', () => { 
+      queueTwos = []; 
+      updateQueueDisplay();
+      saveToStorage(); 
+    });
 
     /********************
      * Timer 1
