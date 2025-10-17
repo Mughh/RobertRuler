@@ -161,8 +161,8 @@
     .start-btn:hover { background: var(--eus-red-hover); }
     .stop-btn { background: var(--eus-gray); }
     .stop-btn:hover { background: var(--eus-gray-hover); }
-    #resetTimerBtn { background: #888; }
-    #resetTimerBtn:hover { background: #777; }
+    #resetTimerBtn1, #resetTimerBtn2 { background: #888; }
+    #resetTimerBtn1:hover, #resetTimerBtn2:hover { background: #777; }
     #nextSpeakerBtn { min-height: 40px; }
 
     /* Timers */
@@ -208,6 +208,123 @@
       font-size: 1.5em; padding: 12px; background: #e9ecef; border-radius: 3px; text-align: center; margin: 0 8px;
     }
     body.dark-mode #currentSpeakerDisplay { background: #333; color: #fff; }
+
+    /* Speaker list item controls */
+  .speaker-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s;
+  }
+  .speaker-item:hover {
+    background: #f0f0f0;
+  }
+  body.dark-mode .speaker-item:hover {
+    background: #222;
+  }
+  .speaker-item-name {
+    flex: 1;
+    margin-right: 8px;
+  }
+  .speaker-item-controls {
+    display: flex;
+    gap: 4px;
+  }
+  .speaker-item button {
+    padding: 4px 8px;
+    font-size: 0.85em;
+    min-width: auto;
+    margin: 0;
+  }
+  .skip-btn {
+    background: var(--eus-gray);
+  }
+  .skip-btn:hover {
+    background: var(--eus-gray-hover);
+  }
+  .remove-btn {
+    background: #d9534f;
+  }
+  .remove-btn:hover {
+    background: #c9302c;
+  }
+
+  /* Timer warning states */
+  .timer-warning circle.timer-progress {
+    stroke: #ff9800;
+  }
+  .timer-critical circle.timer-progress {
+    stroke: #f44336;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+  }
+  .timer-critical svg {
+    animation: pulse 1s infinite;
+  }
+
+  /* Accessible notification toast */
+  #notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    padding: 16px 20px;
+    background: var(--eus-red);
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    font-size: 1.1em;
+    font-weight: 500;
+    z-index: 10000;
+    display: none;
+    min-width: 250px;
+  }
+  #notification.show {
+    display: block;
+    animation: slideIn 0.3s ease-out;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(400px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Reorder buttons */
+  .reorder-btn {
+    background: var(--eus-gray);
+    padding: 2px 6px;
+    font-size: 0.75em;
+    min-width: 24px;
+  }
+  .reorder-btn:hover {
+    background: var(--eus-gray-hover);
+  }
+  .reorder-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  /* Undo button styling */
+  #undoBtn {
+    background: #5cb85c;
+    margin: 0 8px;
+  }
+  #undoBtn:hover:not(:disabled) {
+    background: #4cae4c;
+  }
+  #undoBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Speaker item spacing for new buttons */
+  .speaker-item-controls {
+    display: flex;
+    gap: 3px;
+    flex-wrap: nowrap;
+  }
   </style>
 </head>
 <body>
@@ -231,6 +348,7 @@
 
   <!-- App (hidden until unlocked) -->
   <div id="app" aria-hidden="true">
+    <div id="notification" role="alert" aria-live="assertive"></div>
     <header>
       <h1>Robert's Rules Order Counter</h1>
       <div class="toggle-switch">
@@ -258,65 +376,70 @@
           </div>
         </section>
 
-        <section id="queue">
-          <h2>Speaking Queue</h2>
-          <div class="queue-container">
-            <div class="column">
-              <div class="queue-header">
-                <h3>Priority 1</h3>
-                <button id="clearOnesBtn" class="default clear-btn">Clear 1's</button>
-              </div>
-              <ul id="speakerList1" class="queue-list"></ul>
+      <section id="queue">
+        <h2>Speaking Queue</h2>
+        <div class="queue-container">
+          <div class="column">
+            <div class="queue-header">
+              <h3 id="priority1-heading">Priority 1</h3>
+              <button id="clearOnesBtn" class="default clear-btn" aria-label="Clear all Priority 1 speakers">Clear 1's</button>
             </div>
-            <div class="column">
-              <div class="queue-header">
-                <h3>Priority 2</h3>
-                <button id="clearTwosBtn" class="default clear-btn">Clear 2's</button>
-              </div>
-              <ul id="speakerList2" class="queue-list"></ul>
-            </div>
+            <ul id="speakerList1" class="queue-list" role="list" aria-labelledby="priority1-heading" aria-live="polite"></ul>
           </div>
-          <button id="nextSpeakerBtn" class="default" style="width:98%; margin:8px;">Next Speaker</button>
-          <button id="clearAllDataBtn" class="stop-btn" style="width:98%; margin:8px;">Clear All Data</button>
-        </section>
+          <div class="column">
+            <div class="queue-header">
+              <h3 id="priority2-heading">Priority 2</h3>
+              <button id="clearTwosBtn" class="default clear-btn" aria-label="Clear all Priority 2 speakers">Clear 2's</button>
+            </div>
+            <ul id="speakerList2" class="queue-list" role="list" aria-labelledby="priority2-heading" aria-live="polite"></ul>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin:8px; flex-wrap:wrap;">
+          <button id="nextSpeakerBtn" class="default" style="flex:2; min-width:120px;" aria-label="Move to next speaker in queue">Next Speaker</button>
+          <button id="clearAllDataBtn" class="stop-btn" style="flex:1; min-width:100px;">Clear All</button>
+          <button id="undoBtn" style="flex:1; min-width:80px; background:#5cb85c;" disabled aria-label="Undo last action">↶ Undo</button>
+        </div>
+      </section>
 
-        <section id="currently-speaking">
-          <h2>Currently Speaking</h2>
-          <div id="currentSpeakerDisplay">None</div>
-        </section>
+      <section id="currently-speaking">
+        <h2>Currently Speaking</h2>
+        <div id="currentSpeakerDisplay" role="status" aria-live="assertive" aria-atomic="true">None</div>
+      </section>
       </div>
 
       <!-- Right Panel: Timers -->
       <div class="right-panel">
-        <section id="timerSection1">
+        <section id="timerSection1" aria-label="Timer 1 controls">
           <h2>Timer 1</h2>
-          <div class="circle-container">
+          <div class="circle-container" role="timer" aria-label="Timer 1 display">
             <svg id="timerCircle1" viewBox="0 0 120 120">
               <circle class="timer-bg" cx="60" cy="60" r="50" />
               <circle class="timer-progress" cx="60" cy="60" r="50" />
               <text id="timerDisplay1" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle"></text>
             </svg>
           </div>
+          <!-- Add aria-labels to all buttons -->
           <div id="timerControls1">
-            <button class="preset" data-seconds="30">30 secs</button>
-            <button class="preset" data-seconds="45">45 secs</button>
-            <button class="preset" data-seconds="60">1 min</button>
-            <button class="preset" data-seconds="120">2 mins</button>
-            <button class="preset" data-seconds="600">10 mins</button>
-            <button class="preset" data-seconds="900">15 mins</button>
+            <button class="preset" data-seconds="30" aria-label="Set timer to 30 seconds">30 secs</button>
+            <button class="preset" data-seconds="45" aria-label="Set timer to 45 seconds">45 secs</button>
+            <button class="preset" data-seconds="60" aria-label="Set timer to 1 minute">1 min</button>
+            <button class="preset" data-seconds="120" aria-label="Set timer to 2 minutes">2 mins</button>
+            <button class="preset" data-seconds="600" aria-label="Set timer to 10 minutes">10 mins</button>
+            <button class="preset" data-seconds="900" aria-label="Set timer to 15 minutes">15 mins</button>
           </div>
           <div class="custom-time-container">
-            <input type="number" id="customMinutes1" placeholder="Min" min="0"/>
-            <input type="number" id="customSeconds1" placeholder="Sec" min="0"/>
-            <button id="setCustomTimeBtn1" class="default">Set</button>
+            <input type="number" id="customMinutes1" placeholder="Min" min="0" aria-label="Custom minutes for timer 1"/>
+            <input type="number" id="customSeconds1" placeholder="Sec" min="0" aria-label="Custom seconds for timer 1"/>
+            <button id="setCustomTimeBtn1" class="default" aria-label="Set custom time for timer 1">Set</button>
           </div>
-          <button id="add30SecsBtn1" class="default" style="width:100%; margin:2px;">Add 30 secs</button>
+          <button id="add30SecsBtn1" class="default" style="width:100%; margin:2px;" aria-label="Add 30 seconds to timer 1">Add 30 secs</button>
           <div style="display:flex; gap:8px; flex-wrap:wrap; margin:0 4px;">
-            <button id="startTimerBtn1" class="start-btn" style="flex:1;">Start</button>
-            <button id="pauseTimerBtn1" class="stop-btn" style="flex:1;">Pause</button>
-            <button id="resetTimerBtn1" style="flex:1;">Reset</button>
+            <button id="startTimerBtn1" class="start-btn" style="flex:1;" aria-label="Start timer 1">Start</button>
+            <button id="pauseTimerBtn1" class="stop-btn" style="flex:1;" aria-label="Pause timer 1">Pause</button>
+            <button id="resetTimerBtn1" style="flex:1;" aria-label="Reset timer 1">Reset</button>
           </div>
         </section>
+
 
         <section id="timerSection2">
           <h2>Timer 2</h2>
@@ -349,6 +472,23 @@
         </section>
       </div>
     </main>
+    <button id="keyboardShortcutsBtn" style="position:fixed; bottom:40px; right:10px; padding:8px 12px; background:var(--eus-gray); color:#fff; border:none; border-radius:4px; cursor:pointer; z-index:1001;" aria-label="Show keyboard shortcuts">⌨️ Shortcuts</button>
+
+    <div id="shortcutsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:10001; align-items:center; justify-content:center;">
+      <div style="background:#fff; padding:24px; border-radius:8px; max-width:500px; color:#333;">
+        <h2 style="margin-top:0;">Keyboard Shortcuts</h2>
+        <table style="width:100%; border-collapse:collapse;">
+          <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Space</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Start/Pause Timer 1</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>N</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Next Speaker</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>R</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Reset Timer 1</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>Ctrl+Z</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Undo Last Action</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>1</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Focus Priority 1 input</td></tr>
+          <tr><td style="padding:8px; border-bottom:1px solid #ddd;"><strong>2</strong></td><td style="padding:8px; border-bottom:1px solid #ddd;">Focus Priority 2 input</td></tr>
+          <tr><td style="padding:8px;"><strong>Esc</strong></td><td style="padding:8px;">Close this dialog</td></tr>
+        </table>
+        <button onclick="document.getElementById('shortcutsModal').style.display='none'" style="margin-top:16px; padding:10px 20px; background:var(--eus-red); color:#fff; border:none; border-radius:4px; cursor:pointer;">Close</button>
+      </div>
+    </div>
 
     <div id="footer">Created by: C. El Feghali &amp; N. El Murr</div>
   </div>
@@ -438,6 +578,52 @@
       }
     }
 
+    /* ===== Undo History System ===== */
+    let undoStack = [];
+    const MAX_UNDO_HISTORY = 10;
+
+    function addToUndoStack(action) {
+      undoStack.push(action);
+      if (undoStack.length > MAX_UNDO_HISTORY) {
+        undoStack.shift(); // Remove oldest
+      }
+      updateUndoButton();
+    }
+
+    function undoLastAction() {
+      if (undoStack.length === 0) return;
+      
+      const action = undoStack.pop();
+      
+      switch(action.type) {
+        case 'DELETE_ONE':
+          queueOnes.splice(action.index, 0, action.speaker);
+          break;
+        case 'DELETE_TWO':
+          queueTwos.splice(action.index, 0, action.speaker);
+          break;
+        case 'CLEAR_ONES':
+          queueOnes = action.speakers;
+          break;
+        case 'CLEAR_TWOS':
+          queueTwos = action.speakers;
+          break;
+      }
+      
+      updateQueueDisplay();
+      saveToStorage();
+      updateUndoButton();
+      showNotification('Action undone');
+    }
+
+    function updateUndoButton() {
+      const btn = document.getElementById('undoBtn');
+      if (btn) {
+        btn.disabled = undoStack.length === 0;
+        btn.style.opacity = undoStack.length === 0 ? '0.5' : '1';
+      }
+    }
+
     /***********************
      * Speaker Queue Logic *
      ***********************/
@@ -455,27 +641,159 @@
       speakerList1.innerHTML = "";
       speakerList2.innerHTML = "";
 
-      queueOnes.forEach((speakerObj) => {
+      // Priority 1 Queue
+      queueOnes.forEach((speakerObj, index) => {
         const li = document.createElement('li');
-        li.textContent = speakerObj.name;
+        li.className = 'speaker-item';
         if (speakerObj.skipped) li.classList.add('skipped');
-        li.addEventListener('dblclick', () => {
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'speaker-item-name';
+        nameSpan.textContent = speakerObj.name;
+        
+        const controls = document.createElement('div');
+        controls.className = 'speaker-item-controls';
+        
+        // Move Up button
+        const moveUpBtn = document.createElement('button');
+        moveUpBtn.textContent = '▲';
+        moveUpBtn.className = 'reorder-btn';
+        moveUpBtn.disabled = index === 0;
+        moveUpBtn.setAttribute('aria-label', `Move ${speakerObj.name} up`);
+        moveUpBtn.addEventListener('click', () => {
+          if (index > 0) {
+            [queueOnes[index], queueOnes[index - 1]] = [queueOnes[index - 1], queueOnes[index]];
+            updateQueueDisplay();
+            saveToStorage();
+          }
+        });
+        
+        // Move Down button
+        const moveDownBtn = document.createElement('button');
+        moveDownBtn.textContent = '▼';
+        moveDownBtn.className = 'reorder-btn';
+        moveDownBtn.disabled = index === queueOnes.length - 1;
+        moveDownBtn.setAttribute('aria-label', `Move ${speakerObj.name} down`);
+        moveDownBtn.addEventListener('click', () => {
+          if (index < queueOnes.length - 1) {
+            [queueOnes[index], queueOnes[index + 1]] = [queueOnes[index + 1], queueOnes[index]];
+            updateQueueDisplay();
+            saveToStorage();
+          }
+        });
+        
+        // Skip button
+        const skipBtn = document.createElement('button');
+        skipBtn.textContent = speakerObj.skipped ? 'Unskip' : 'Skip';
+        skipBtn.className = 'skip-btn';
+        skipBtn.setAttribute('aria-label', `${speakerObj.skipped ? 'Unskip' : 'Skip'} ${speakerObj.name}`);
+        skipBtn.addEventListener('click', () => {
           speakerObj.skipped = !speakerObj.skipped;
-          li.classList.toggle('skipped');
+          updateQueueDisplay();
           saveToStorage();
         });
+        
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '✕';
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', `Remove ${speakerObj.name} from queue`);
+        removeBtn.addEventListener('click', () => {
+          addToUndoStack({
+            type: 'DELETE_ONE',
+            speaker: { ...speakerObj },
+            index: index
+          });
+          queueOnes.splice(index, 1);
+          updateQueueDisplay();
+          saveToStorage();
+          showNotification(`${speakerObj.name} removed`);
+        });
+        
+        controls.appendChild(moveUpBtn);
+        controls.appendChild(moveDownBtn);
+        controls.appendChild(skipBtn);
+        controls.appendChild(removeBtn);
+        li.appendChild(nameSpan);
+        li.appendChild(controls);
         speakerList1.appendChild(li);
       });
 
-      queueTwos.forEach((speakerObj) => {
+      // Priority 2 Queue
+      queueTwos.forEach((speakerObj, index) => {
         const li = document.createElement('li');
-        li.textContent = speakerObj.name;
+        li.className = 'speaker-item';
         if (speakerObj.skipped) li.classList.add('skipped');
-        li.addEventListener('dblclick', () => {
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'speaker-item-name';
+        nameSpan.textContent = speakerObj.name;
+        
+        const controls = document.createElement('div');
+        controls.className = 'speaker-item-controls';
+        
+        // Move Up button
+        const moveUpBtn = document.createElement('button');
+        moveUpBtn.textContent = '▲';
+        moveUpBtn.className = 'reorder-btn';
+        moveUpBtn.disabled = index === 0;
+        moveUpBtn.setAttribute('aria-label', `Move ${speakerObj.name} up`);
+        moveUpBtn.addEventListener('click', () => {
+          if (index > 0) {
+            [queueTwos[index], queueTwos[index - 1]] = [queueTwos[index - 1], queueTwos[index]];
+            updateQueueDisplay();
+            saveToStorage();
+          }
+        });
+        
+        // Move Down button
+        const moveDownBtn = document.createElement('button');
+        moveDownBtn.textContent = '▼';
+        moveDownBtn.className = 'reorder-btn';
+        moveDownBtn.disabled = index === queueTwos.length - 1;
+        moveDownBtn.setAttribute('aria-label', `Move ${speakerObj.name} down`);
+        moveDownBtn.addEventListener('click', () => {
+          if (index < queueTwos.length - 1) {
+            [queueTwos[index], queueTwos[index + 1]] = [queueTwos[index + 1], queueTwos[index]];
+            updateQueueDisplay();
+            saveToStorage();
+          }
+        });
+        
+        // Skip button
+        const skipBtn = document.createElement('button');
+        skipBtn.textContent = speakerObj.skipped ? 'Unskip' : 'Skip';
+        skipBtn.className = 'skip-btn';
+        skipBtn.setAttribute('aria-label', `${speakerObj.skipped ? 'Unskip' : 'Skip'} ${speakerObj.name}`);
+        skipBtn.addEventListener('click', () => {
           speakerObj.skipped = !speakerObj.skipped;
-          li.classList.toggle('skipped');
+          updateQueueDisplay();
           saveToStorage();
         });
+        
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '✕';
+        removeBtn.className = 'remove-btn';
+        removeBtn.setAttribute('aria-label', `Remove ${speakerObj.name} from queue`);
+        removeBtn.addEventListener('click', () => {
+          addToUndoStack({
+            type: 'DELETE_TWO',
+            speaker: { ...speakerObj },
+            index: index
+          });
+          queueTwos.splice(index, 1);
+          updateQueueDisplay();
+          saveToStorage();
+          showNotification(`${speakerObj.name} removed`);
+        });
+        
+        controls.appendChild(moveUpBtn);
+        controls.appendChild(moveDownBtn);
+        controls.appendChild(skipBtn);
+        controls.appendChild(removeBtn);
+        li.appendChild(nameSpan);
+        li.appendChild(controls);
         speakerList2.appendChild(li);
       });
     }
@@ -532,16 +850,70 @@
       return null;
     }
 
-    document.getElementById('clearOnesBtn').addEventListener('click', () => { 
+    document.getElementById('clearOnesBtn').addEventListener('click', () => {
+      if (queueOnes.length === 0) return;
+      
+      addToUndoStack({
+        type: 'CLEAR_ONES',
+        speakers: [...queueOnes]
+      });
+      
       queueOnes = []; 
       updateQueueDisplay(); 
       saveToStorage();
+      showNotification('Priority 1 queue cleared');
     });
-    document.getElementById('clearTwosBtn').addEventListener('click', () => { 
+
+    document.getElementById('clearTwosBtn').addEventListener('click', () => {
+      if (queueTwos.length === 0) return;
+      
+      addToUndoStack({
+        type: 'CLEAR_TWOS',
+        speakers: [...queueTwos]
+      });
+      
       queueTwos = []; 
       updateQueueDisplay();
-      saveToStorage(); 
+      saveToStorage();
+      showNotification('Priority 2 queue cleared');
     });
+    
+    // Undo button event listener and initialization
+    document.getElementById('undoBtn').addEventListener('click', undoLastAction);
+    updateUndoButton();
+
+    /* ===== Accessible Notification System ===== */
+    function showNotification(message) {
+      const notif = document.getElementById('notification');
+      notif.textContent = message;
+      notif.classList.add('show');
+      
+      // Play notification sound
+      playNotificationSound();
+      
+      setTimeout(() => {
+        notif.classList.remove('show');
+      }, 4000);
+    }
+
+    function playNotificationSound() {
+      // Simple beep using Web Audio API
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    }
 
     /********************
      * Timer 1
@@ -555,21 +927,45 @@
 
     function updateTimerDisplay1() {
       const timerDisplay1 = document.getElementById('timerDisplay1');
+      const timerSection = document.getElementById('timerSection1');
       const minutes1 = Math.floor(timerRemaining1 / 60);
       const seconds1 = timerRemaining1 % 60;
       const timeString1 = String(minutes1).padStart(2,'0') + ":" + String(seconds1).padStart(2,'0');
       timerDisplay1.textContent = timeString1;
+      
+      // Update progress circle
       const fraction1 = timerDuration1 > 0 ? timerRemaining1 / timerDuration1 : 1;
       circleProgress1.style.strokeDashoffset = circleCircumference1 * (1 - fraction1);
+      
+      // Visual warnings
+      timerSection.classList.remove('timer-warning', 'timer-critical');
+      if (timerRemaining1 <= 10 && timerRemaining1 > 5) {
+        timerSection.classList.add('timer-warning');
+      } else if (timerRemaining1 <= 5 && timerRemaining1 > 0) {
+        timerSection.classList.add('timer-critical');
+      }
     }
 
     function startTimer1() {
       if (timerInterval1 !== null) return;
       timerInterval1 = setInterval(() => {
-        if (timerRemaining1 > 0) { timerRemaining1--; updateTimerDisplay1(); }
-        else { clearInterval(timerInterval1); timerInterval1 = null; alert("Timer 1: Time's up!"); }
+        if (timerRemaining1 > 0) {
+          timerRemaining1--;
+          updateTimerDisplay1();
+          
+          // Warnings at specific times
+          if (timerRemaining1 === 10) {
+            showNotification('Timer 1: 10 seconds remaining');
+          }
+        } else {
+          clearInterval(timerInterval1);
+          timerInterval1 = null;
+          showNotification("Timer 1: Time's up!");
+          document.getElementById('timerSection1').classList.remove('timer-warning', 'timer-critical');
+        }
       }, 1000);
     }
+
     function pauseTimer1() { if (timerInterval1 !== null) { clearInterval(timerInterval1); timerInterval1 = null; } }
     function resetTimer1() { pauseTimer1(); timerRemaining1 = timerDuration1; updateTimerDisplay1(); }
 
@@ -607,19 +1003,38 @@
 
     function updateTimerDisplay2() {
       const timerDisplay2 = document.getElementById('timerDisplay2');
+      const timerSection = document.getElementById('timerSection2');
       const minutes2 = Math.floor(timerRemaining2 / 60);
       const seconds2 = timerRemaining2 % 60;
       const timeString2 = String(minutes2).padStart(2,'0') + ":" + String(seconds2).padStart(2,'0');
       timerDisplay2.textContent = timeString2;
       const fraction2 = timerDuration2 > 0 ? timerRemaining2 / timerDuration2 : 1;
       circleProgress2.style.strokeDashoffset = circleCircumference2 * (1 - fraction2);
+      // Visual warnings
+      timerSection.classList.remove('timer-warning', 'timer-critical');
+      if (timerRemaining2 <= 10 && timerRemaining2 > 5) {
+        timerSection.classList.add('timer-warning');
+      } else if (timerRemaining2 <= 5 && timerRemaining2 > 0) {
+        timerSection.classList.add('timer-critical');
+      }
     }
 
     function startTimer2() {
       if (timerInterval2 !== null) return;
       timerInterval2 = setInterval(() => {
-        if (timerRemaining2 > 0) { timerRemaining2--; updateTimerDisplay2(); }
-        else { clearInterval(timerInterval2); timerInterval2 = null; alert("Timer 2: Time's up!"); }
+        if (timerRemaining2 > 0) { 
+          timerRemaining2--; 
+          updateTimerDisplay2();
+          if (timerRemaining2 === 10) {
+            showNotification('Timer 2: 10 seconds remaining');
+          }
+        }
+        else { 
+          clearInterval(timerInterval2); 
+          timerInterval2 = null; 
+          showNotification("Timer 2: Time's up!"); 
+          document.getElementById('timerSection2').classList.remove('timer-warning', 'timer-critical');
+        }
       }, 1000);
     }
     function pauseTimer2() { if (timerInterval2 !== null) { clearInterval(timerInterval2); timerInterval2 = null; } }
@@ -646,10 +1061,45 @@
 
     circleProgress2.style.strokeDasharray = circleCircumference2;
     updateTimerDisplay2();
+
+    /* ===== Keyboard Shortcuts ===== */
+    document.getElementById('keyboardShortcutsBtn').addEventListener('click', () => {
+      document.getElementById('shortcutsModal').style.display = 'flex';
+    });
+
+    document.addEventListener('keydown', (e) => {
+      // Don't trigger if typing in an input
+      if (e.target.tagName === 'INPUT') return;
+      
+      switch(e.key.toLowerCase()) {
+        case ' ':
+          e.preventDefault();
+          if (timerInterval1 === null) startTimer1();
+          else pauseTimer1();
+          break;
+        case 'n':
+          document.getElementById('nextSpeakerBtn').click();
+          break;
+        case 'r':
+          resetTimer1();
+          break;
+        case '1':
+          document.getElementById('speakerName1').focus();
+          break;
+        case '2':
+          document.getElementById('speakerName2').focus();
+          break;
+        case 'z':
+          if (e.ctrlKey || e.metaKey) { // Ctrl+Z or Cmd+Z
+            e.preventDefault();
+            undoLastAction();
+          }
+          break;
+        case 'escape':
+          document.getElementById('shortcutsModal').style.display = 'none';
+          break;
+      }
+    });
   </script>
 </body>
 </html>
-
-
-
-
