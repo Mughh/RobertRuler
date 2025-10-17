@@ -30,7 +30,7 @@ roberts-rules-tracker/
 ├── index.html
 ├── styles.css
 ├── script.js
-├── eus-logo.webp
+├── eus-logo.png
 └── README.md
 ```
 
